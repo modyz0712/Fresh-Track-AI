@@ -2,6 +2,7 @@ package my.edu.utar.freshtrackai.ui.dashboard
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.google.gson.Gson
 
 internal interface DashboardPreferenceStore {
     fun getString(key: String): String?
@@ -42,6 +43,8 @@ internal object DashboardPreferencesStore {
     private const val KEY_INVENTORY_SORT_MODE = "inventory_sort_mode"
     private const val KEY_GEMINI_API_KEY = "gemini_api_key"
     private const val KEY_GEMMA_DOWNLOAD_ID = "gemma_download_id"
+    private const val KEY_GENERATED_RECIPES = "generated_recipes"
+    private val gson = Gson()
 
     private fun store(context: Context): DashboardPreferenceStore {
         return SharedPreferencesDashboardPreferenceStore(
@@ -113,5 +116,41 @@ internal object DashboardPreferencesStore {
 
     internal fun clearGemmaDownloadId(store: DashboardPreferenceStore) {
         store.remove(KEY_GEMMA_DOWNLOAD_ID)
+    }
+
+    fun loadGeneratedRecipes(context: Context): List<RecipeUi> {
+        return loadGeneratedRecipes(store(context))
+    }
+
+    internal fun loadGeneratedRecipes(store: DashboardPreferenceStore): List<RecipeUi> {
+        val raw = store.getString(KEY_GENERATED_RECIPES).orEmpty()
+        if (raw.isBlank()) {
+            return emptyList()
+        }
+
+        return runCatching {
+            gson.fromJson(raw, Array<RecipeUi>::class.java)?.toList().orEmpty()
+        }.getOrElse {
+            emptyList()
+        }
+    }
+
+    fun saveGeneratedRecipes(context: Context, recipes: List<RecipeUi>) {
+        saveGeneratedRecipes(store(context), recipes)
+    }
+
+    internal fun saveGeneratedRecipes(
+        store: DashboardPreferenceStore,
+        recipes: List<RecipeUi>
+    ) {
+        store.putString(KEY_GENERATED_RECIPES, gson.toJson(recipes))
+    }
+
+    fun clearGeneratedRecipes(context: Context) {
+        clearGeneratedRecipes(store(context))
+    }
+
+    internal fun clearGeneratedRecipes(store: DashboardPreferenceStore) {
+        store.remove(KEY_GENERATED_RECIPES)
     }
 }

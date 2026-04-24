@@ -53,6 +53,8 @@ object NutritionAiHelper {
         val cleaned = nutritionNotes.trim().lowercase()
         return cleaned.isBlank() ||
             cleaned == "not provided" ||
+            cleaned == "not available" ||
+            cleaned == "ocr parsed from receipt" ||
             cleaned.startsWith("quick scan label (mock)") ||
             cleaned.startsWith("e.g.")
     }

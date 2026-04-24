@@ -15,7 +15,8 @@ import my.edu.utar.freshtrackai.ui.dashboard.RecipeUi
  */
 internal class RecipeGenerationViewModel(
     private val useCase: GenerateRecipeUiUseCase = GenerateRecipeUiUseCase(),
-    private val initialRecipes: List<RecipeUi> = cachedRecipes,
+    private val recipeStore: RecipePersistenceStore = AppRecipePersistenceStore,
+    private val initialRecipes: List<RecipeUi> = recipeStore.loadRecipes(),
     private val recipeGenerator: suspend (
         inventory: List<InventoryItem>,
         onStatus: ((String) -> Unit)?
@@ -26,11 +27,6 @@ internal class RecipeGenerationViewModel(
         )
     }
 ) : ViewModel() {
-
-    companion object {
-        // Keeps the last generated recipes so they survive simple ViewModel recreation.
-        private var cachedRecipes: List<RecipeUi> = emptyList()
-    }
 
     private val _uiState = MutableStateFlow(
         RecipeGenerationUiState(recipes = initialRecipes)
@@ -64,7 +60,7 @@ internal class RecipeGenerationViewModel(
                     }
                 )
 
-                cachedRecipes = recipes
+                recipeStore.saveRecipes(recipes)
                 _uiState.value = RecipeGenerationUiState(
                     isLoading = false,
                     recipes = recipes,
@@ -88,7 +84,7 @@ internal class RecipeGenerationViewModel(
     }
 
     internal fun seedRecipesForTest(recipes: List<RecipeUi>) {
-        cachedRecipes = recipes
+        recipeStore.saveRecipes(recipes)
         _uiState.value = _uiState.value.copy(recipes = recipes)
     }
 }

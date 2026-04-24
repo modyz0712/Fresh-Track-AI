@@ -38,6 +38,7 @@ import my.edu.utar.freshtrackai.ai.FoodReviewMapper
 import my.edu.utar.freshtrackai.ai.RecipeGenerationViewModel
 import my.edu.utar.freshtrackai.ai.ReceiptOcrProvider
 import my.edu.utar.freshtrackai.ai.ReceiptReviewMapper
+import my.edu.utar.freshtrackai.ai.ScanReviewEnricher
 import my.edu.utar.freshtrackai.ai.ScanCaptureBitmapResolver
 import my.edu.utar.freshtrackai.ui.inventory.InventoryViewModel
 import my.edu.utar.freshtrackai.ui.theme.FreshTrackAITheme
@@ -197,7 +198,9 @@ fun FreshTrackDashboardScreen(modifier: Modifier = Modifier) {
                                 android.util.Log.d("RECEIPT_FLOW", "Parsed item count = ${parsed.items.size}")
                                 android.util.Log.d("RECEIPT_FLOW", "Parsed items = ${parsed.items}")
 
-                                val mapped = ReceiptReviewMapper.map(parsed)
+                                val mapped = ScanReviewEnricher.enrich(
+                                    ReceiptReviewMapper.map(parsed)
+                                )
                                 android.util.Log.d("RECEIPT_FLOW", "Mapped review count = ${mapped.size}")
                                 android.util.Log.d("RECEIPT_FLOW", "Mapped review items = ${mapped.map { it.name }}")
 
@@ -225,7 +228,9 @@ fun FreshTrackDashboardScreen(modifier: Modifier = Modifier) {
                                 android.util.Log.d("FOOD_FLOW", "Parsed item count = ${parsed.items.size}")
                                 android.util.Log.d("FOOD_FLOW", "Parsed items = ${parsed.items}")
 
-                                val mapped = FoodReviewMapper.map(parsed)
+                                val mapped = ScanReviewEnricher.enrich(
+                                    FoodReviewMapper.map(parsed)
+                                )
                                 android.util.Log.d("FOOD_FLOW", "Mapped review count = ${mapped.size}")
                                 android.util.Log.d("FOOD_FLOW", "Mapped review items = ${mapped.map { it.name }}")
 
