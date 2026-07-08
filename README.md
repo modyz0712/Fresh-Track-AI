@@ -24,7 +24,6 @@ AI-assisted Android grocery inventory, expiry reminder, recipe suggestion, and s
 - [Repository Structure](#repository-structure)
 - [Getting Started](#getting-started)
 - [Proposal Deviations](#proposal-deviations)
-- [Academic Context](#academic-context)
 - [License](#license)
 
 ## About
@@ -186,16 +185,6 @@ The final implementation differs from the original proposal in a few intentional
 - Expiry estimation was extended beyond rule-based logic with Gemini fallback support.
 
 These changes make the app more offline-capable and reduce dependence on backend services while still satisfying the assignment's external-service requirement through Gemini integration.
-
-## Academic Context
-
-- Course: UCCD3223 Mobile Applications Development
-- Trimester: February 2026
-- Assignment: Group Assignment 2
-- Group: Group 36, Fresh Group
-- Group members: Yap Jun Heen, Tan Jia Xin, Wong Yen Ming, Koo Ian Hong
-- Koo Ian Hong contribution from report: UI package, page-level interaction, user input handling, display behavior, and end-to-end UI integration with logic and AI outputs
-- Final due date from assignment guideline: 25 April 2026, before 5:00 PM
 
 ## License
 
