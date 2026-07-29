@@ -1,191 +1,111 @@
 <div align="center">
 
-# FreshTrack AI
+# 🥬 FreshTrack AI
 
-AI-assisted Android grocery inventory, expiry reminder, recipe suggestion, and shopping-list app for smarter household food management.
+**A local-first Android companion for tracking groceries, catching expiry risks, planning recipes, and turning missing ingredients into a shopping list.**
 
-![Android](https://img.shields.io/badge/Android-Kotlin%20%2B%20Compose-3DDC84?style=for-the-badge&logo=android&logoColor=white)
-![Room](https://img.shields.io/badge/Storage-Room%20Database-2563EB?style=for-the-badge)
-![Gemini](https://img.shields.io/badge/AI-Gemini%20API-7C3AED?style=for-the-badge)
-![Gemma](https://img.shields.io/badge/Local%20AI-Gemma%20LiteRT--LM-111827?style=for-the-badge)
-![License](https://img.shields.io/badge/License-MIT-111827?style=for-the-badge)
+![Android](https://img.shields.io/badge/Android-API%2026%2B-3DDC84?style=flat-square&logo=android&logoColor=white)
+![Kotlin](https://img.shields.io/badge/Kotlin-Jetpack%20Compose-7F52FF?style=flat-square&logo=kotlin&logoColor=white)
+![Room](https://img.shields.io/badge/Data-Room-2563EB?style=flat-square)
+![AI](https://img.shields.io/badge/AI-Gemini%20%2B%20Gemma-8E75B2?style=flat-square)
+![License](https://img.shields.io/badge/License-MIT-111827?style=flat-square)
 
 </div>
 
----
+## 🎯 Why FreshTrack?
 
-## Table of Contents
+Groceries are easy to forget once they reach the fridge or pantry. FreshTrack keeps the inventory visible, highlights items that need attention, and helps reuse available ingredients before buying more.
 
-- [About](#about)
-- [Problem Scope](#problem-scope)
-- [Key Features](#key-features)
-- [AI Runtime Design](#ai-runtime-design)
-- [Architecture](#architecture)
-- [Repository Structure](#repository-structure)
-- [Getting Started](#getting-started)
-- [Proposal Deviations](#proposal-deviations)
-- [License](#license)
+## ✨ What It Does
 
-## About
+- Maintains an offline inventory with quantities, categories, dates, expiry status, and notes.
+- Supports manual entry plus editable review flows for food images, receipts, and nutrition labels.
+- Sorts inventory by expiry or name and separates fresh, watch, critical, and expired items.
+- Runs a daily `WorkManager` check and posts expiry notifications.
+- Generates recipes from the current inventory through Gemini, with local Gemma fallback.
+- Adds missing recipe ingredients to a persistent shopping list and merges duplicates.
+- Stores inventory, shopping items, and cached recipe results locally.
+- Lets users configure a Gemini API key and import or download a compatible local Gemma model at runtime.
 
-FreshTrack AI is a mobile application developed for household grocery management. It helps users record food items, monitor expiry status, reuse existing ingredients through recipe suggestions, and prepare shopping lists for missing items.
+## 📱 Verified App Views
 
-The app is designed for students, working adults, families, and small households that want a low-friction alternative to manual pantry tracking or expensive smart-fridge hardware. It aligns with SDG 12, Responsible Consumption and Production, by encouraging better food visibility and reducing avoidable food waste.
+The screens below are captured from the Android app with synthetic grocery data.
 
-## Problem Scope
+| Dashboard | Inventory |
+|---|---|
+| ![FreshTrack dashboard with synthetic grocery data](docs/screenshots/freshtrack-dashboard.png) | ![FreshTrack inventory with synthetic grocery data](docs/screenshots/freshtrack-inventory.png) |
 
-Many households buy groceries without a clear way to track what was purchased, when it was added, and when it may expire. This can lead to forgotten ingredients, duplicate purchases, poor meal planning, and unnecessary food waste.
+## 🧭 Architecture
 
-FreshTrack AI addresses this with:
+```mermaid
+flowchart LR
+    UI["Jetpack Compose screens"] --> VM["ViewModels + StateFlow"]
+    VM --> REPO["InventoryRepository"]
+    REPO --> ROOM[("Room database")]
 
-- AI-assisted food image scan and receipt parsing.
-- Editable review before saving detected items.
-- Local inventory storage on the device.
-- Expiry estimation and daily reminder notifications.
-- Recipe suggestions based on current inventory.
-- Shopping list generation from missing recipe ingredients.
+    WORK["WorkManager expiry check"] --> ROOM
+    WORK --> NOTIFY["Android notifications"]
 
-## Key Features
+    UI --> REVIEW["Editable scan review"]
+    REVIEW --> GEMMA["Local Gemma via LiteRT-LM"]
+    GEMMA --> VM
 
-### Smart Food Scan and Receipt Parsing
+    VM --> RECIPE["Recipe generation"]
+    RECIPE --> GEMINI["Gemini API"]
+    GEMINI -. "missing key or service failure" .-> GEMMA
 
-- Supports food image scan and receipt image parsing.
-- Uses the local Gemma LiteRT-LM path for image-based extraction.
-- Converts scan results into editable item entries before saving.
-- Allows users to correct item names, categories, quantities, expiry data, and nutrition notes.
-
-### Inventory Management
-
-- Stores grocery and pantry items locally using Room Database.
-- Supports add, edit, delete, retrieve, and sorted display workflows.
-- Uses ViewModel and Kotlin Flow so UI state follows the latest stored data.
-- Keeps inventory available offline after the app is closed.
-
-### Expiry Estimation and Notification
-
-- Uses a three-tier expiry approach:
-  - user-entered or scanned expiry date
-  - offline category and shelf-life rules
-  - Gemini fallback for more specific shelf-life estimation
-- Classifies items as Fresh, Watch, Critical, or Expired.
-- Uses WorkManager for daily background expiry checks and notifications.
-
-### AI Recipe Suggestion
-
-- Generates recipes from the user's current inventory summary.
-- Uses Gemini as the primary recipe generation path.
-- Falls back to local Gemma when Gemini is unavailable, invalid, or quota-limited.
-- Caches generated recipes locally so previous results remain visible after relaunch.
-
-### Shopping List Generation
-
-- Adds missing ingredients from recipe results into a separate shopping list.
-- Normalizes duplicate ingredient names.
-- Aggregates quantity counts to reduce repeated list entries.
-
-### Runtime Settings
-
-- Lets users enter, save, clear, and test a Gemini API key at runtime.
-- Lets users download or choose a Gemma model for local AI features.
-- Surfaces model and API-key status inside the app instead of requiring hardcoded secrets.
-
-## AI Runtime Design
-
-| Feature | Primary Path | Fallback / Notes |
-|---|---|---|
-| Food image detection | Local Gemma | User can edit results before saving |
-| Receipt parsing | Local Gemma | Receipt OCR endpoint from proposal was not used |
-| Nutrition label scan | Local Gemma | Supports camera and gallery image selection |
-| Nutrition AI fill | Local Gemma | Stores output in editable notes |
-| Recipe generation | Gemini | Falls back to local Gemma |
-| Category / expiry assistance | Gemini | Falls back to offline shelf-life rules |
-
-This hybrid design keeps the core inventory workflow usable offline while still using Gemini where cloud AI provides stronger structured reasoning.
-
-## Architecture
-
-```text
-Jetpack Compose UI
-        |
-        v
-ViewModels + Dashboard / Scan / Recipe / Inventory Screens
-        |
-        v
-InventoryRepository
-        |
-        v
-Room Database
-
-AI support:
-Gemma LiteRT-LM  -> food scan, receipt parsing, nutrition, recipe fallback
-Gemini API      -> recipe generation, shelf-life/category assistance
-WorkManager     -> daily expiry checks and notifications
+    VM --> RULES["Shelf-life and category rules"]
+    RULES --> ROOM
 ```
 
-## Repository Structure
+The UI observes `StateFlow` data exposed by ViewModels. Repositories isolate Room access, while AI providers keep cloud and on-device inference paths separate from inventory persistence.
 
-```text
-Fresh-Track-AI/
-|-- app/
-|   |-- src/main/java/my/edu/utar/freshtrackai/
-|   |   |-- ai/               Gemini, Gemma, recipe, OCR, scan mapping
-|   |   |-- data/             Room database, DAO, entities, repository
-|   |   |-- logic/            expiry rules, notifications, nutrition support
-|   |   |-- ui/               Jetpack Compose screens and dashboard flow
-|   |   `-- MainActivity.kt
-|   |-- src/main/res/         launcher icon, themes, XML config
-|   `-- build.gradle.kts
-|-- gradle/libs.versions.toml
-|-- AI_FEATURE_RUNTIME.md
-|-- BUILD_TOOLCHAIN.md
-|-- README_Handoff.md
-|-- LICENSE
-`-- README.md
-```
+## 🧰 Technology
 
-## Getting Started
+| Area | Implementation |
+|---|---|
+| UI | Kotlin, Jetpack Compose, Material 3 |
+| State | Android ViewModel, Kotlin Coroutines, `StateFlow` |
+| Persistence | Room, DAO interfaces, repository layer |
+| Background work | WorkManager, Android notifications |
+| Cloud AI | Google Gemini Android SDK |
+| On-device AI | Gemma through Google AI Edge LiteRT-LM |
+| Media | Camera/gallery document access, Coil |
+| Testing | JUnit, coroutine test utilities, AndroidX test libraries |
 
-### Prerequisites
+## 🚀 Run Locally
 
-- Android Studio
-- JDK 17 or newer
+### Requirements
+
+- Android Studio with JDK 17+
 - Android SDK 36
-- Android device or emulator, preferably a real device for Gemma testing
-
-### Build
-
-On Windows PowerShell:
+- Android device or emulator running Android 8.0+
 
 ```powershell
-$env:JAVA_HOME='C:\Program Files\Android\Android Studio\jbr'
-$env:Path="$env:JAVA_HOME\bin;$env:Path"
+# Build the debug APK
 .\gradlew.bat :app:assembleDebug
-```
 
-### Run Unit Tests
-
-```powershell
+# Run local unit tests
 .\gradlew.bat :app:testDebugUnitTest
 ```
 
-### Runtime Setup
+Open the project in Android Studio, select the `app` configuration, and run it on a device or emulator. Core inventory and shopping-list features work without an API key.
 
-1. Open the app.
-2. Use Settings to enter and test a Gemini API key if cloud AI features are needed.
-3. Use Settings to download or choose a Gemma `.litertlm` model for local AI features.
-4. Use Smart Scan, inventory, recipe, and shopping-list flows from the dashboard.
+For AI features:
 
-## Proposal Deviations
+1. Import or download a compatible `.litertlm` Gemma model from Profile Settings.
+2. Add and validate a Gemini API key only when cloud recipe or estimation support is needed.
+3. Keep API keys and model binaries outside version control.
 
-The final implementation differs from the original proposal in a few intentional ways:
+## ✅ Validation and Boundaries
 
-- Food scan and receipt parsing use local Gemma instead of separate external AI/OCR REST endpoints.
-- Firebase cloud backup and cross-device sync are not implemented; inventory is stored locally through Room.
-- A nutrition information card was added even though it was not part of the original core proposal.
-- Expiry estimation was extended beyond rule-based logic with Gemini fallback support.
+- Unit coverage includes repository behavior, sorting, dashboard data, expiry calculations, scan mapping, Gemini runtime handling, model downloads, and recipe generation.
+- Food-image extraction and receipt parsing use the configured local Gemma model; they are unavailable until a compatible model is installed.
+- Gemini calls require network access and a user-supplied key. Recipe generation can fall back to Gemma when the cloud path is unavailable.
+- Room is the source of truth for app data. There is no account system, cloud synchronization, or cross-device backup.
+- Database migrations currently use destructive fallback, so schema upgrades can clear local data.
+- AI output remains reviewable and should not be treated as authoritative nutrition or food-safety advice.
 
-These changes make the app more offline-capable and reduce dependence on backend services while still satisfying the assignment's external-service requirement through Gemini integration.
+## 📄 License
 
-## License
-
-This repository is released under the MIT License. See [LICENSE](LICENSE) for details.
+Released under the [MIT License](LICENSE).
