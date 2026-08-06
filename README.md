@@ -60,6 +60,56 @@ flowchart LR
 
 The UI observes `StateFlow` data exposed by ViewModels. Repositories isolate Room access, while AI providers keep cloud and on-device inference paths separate from inventory persistence.
 
+## Feature and Data Flow
+
+1. Compose screens send user actions to `InventoryViewModel` or the recipe
+   ViewModel instead of writing to Room directly.
+2. `InventoryRepository` coordinates the inventory and shopping DAOs. DAO
+   `Flow` results become `StateFlow`, so visible lists update when Room changes.
+3. Manual or AI-assisted scans remain editable before mapped items are inserted
+   into inventory.
+4. `ExpiryCalculator` parses known date formats, calculates remaining days, and
+   maps the result to fresh, watch, critical, or expired status. Rule-based shelf
+   life provides a fallback when no reliable date is available.
+5. WorkManager performs a periodic database check and creates local notifications
+   for items that need attention without requiring the app to remain open.
+6. Recipe generation starts with configured Gemini. Missing keys, quota or
+   service failures can route to local Gemma when a compatible model is installed.
+7. Missing recipe ingredients enter `addOrMergeShoppingItem`, which normalizes
+   names, avoids duplicate rows, combines quantities, and retains recipe source.
+
+### Why this architecture
+
+- Room is the offline source of truth, while repository and ViewModel layers
+  keep persistence out of UI composables.
+- `StateFlow` represents observable screen state and survives asynchronous Room
+  and AI operations more clearly than manually refreshing mutable lists.
+- WorkManager fits deferrable daily expiry checks and respects Android background
+  execution rules better than a permanently running service.
+- Cloud Gemini improves convenience; local Gemma provides a privacy-conscious
+  fallback, but both paths return reviewable suggestions rather than authoritative
+  food-safety or nutrition decisions.
+
+## Technical Checkpoints
+
+| Topic | Source checkpoint |
+|---|---|
+| Room access and shopping-item merging | `app/src/main/java/my/edu/utar/freshtrackai/data/repository/InventoryRepository.kt` |
+| Observable inventory and user actions | `app/src/main/java/my/edu/utar/freshtrackai/ui/inventory/InventoryViewModel.kt` |
+| Expiry parsing and status rules | `app/src/main/java/my/edu/utar/freshtrackai/logic/ExpiryCalculator.kt` |
+| Gemini failure classification and fallback | `app/src/main/java/my/edu/utar/freshtrackai/ai/GeminiRuntime.kt` |
+| Recipe-generation state | `app/src/main/java/my/edu/utar/freshtrackai/ai/RecipeGenerationViewModel.kt` |
+| Screen integration | `app/src/main/java/my/edu/utar/freshtrackai/ui/dashboard/DashboardRoute.kt` |
+
+## Project Context
+
+FreshTrack AI is a mobile-development group project. This README describes the
+whole product and the responsibilities of its shared architecture. Ian Hong's
+verified contribution focused on Compose UI components, user interactions,
+screen-level integration, and connecting inventory, scan, recipe, shopping-list,
+and expiry-aware workflows. It does not attribute every AI, Room, or background
+worker component to one team member.
+
 ## 🧰 Technology
 
 | Area | Implementation |
